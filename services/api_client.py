@@ -99,3 +99,45 @@ def delete_session(
     )
 
     return response.json()
+
+# ======================
+# LOAD CHAT
+# ======================
+def load_chat(session_id):
+
+    response = requests.get(
+        f"{BASE_URL}/chat/{session_id}"
+    )
+
+    return response.json()
+
+# ======================
+# SAVE CHAT
+# ======================
+def save_chat(
+    session_id,
+    role,
+    message
+):
+
+    response = requests.post(
+        f"{BASE_URL}/chat/save",
+        json={
+            "session_id": session_id,
+            "role": role,
+            "message": message
+        }
+    )
+
+    return response.json()
+
+# ======================
+# CLEAR CHAT
+# ======================
+def clear_chat(session_id):
+
+    response = requests.delete(
+        f"{BASE_URL}/chat/{session_id}"
+    )
+
+    return response.json()
