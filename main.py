@@ -11,3 +11,10 @@ app = FastAPI(
 # ROUTES
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 # app.include_router(chat_router, prefix="/chat", tags=["Chat"])
+
+@app.get("/")
+def home():
+
+    return {
+        "message": "AI Project API Running"
+    }
