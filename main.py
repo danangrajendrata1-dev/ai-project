@@ -1,5 +1,12 @@
 from fastapi import FastAPI
-from api.routes.auth import router as auth_router
+
+from api.routes.auth import (
+    router as auth_router
+)
+
+from api.routes.session import (
+    router as session_router
+)
 
 app = FastAPI(
     title="AI Project API",
@@ -13,4 +20,12 @@ def home():
         "message": "AI Project API Running"
     }
 
-app.include_router(auth_router, prefix="/auth")
+app.include_router(
+    auth_router,
+    prefix="/auth"
+)
+
+app.include_router(
+    session_router,
+    prefix="/session"
+)

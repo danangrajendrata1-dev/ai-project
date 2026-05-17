@@ -1,248 +1,201 @@
 import streamlit as st
-
-# =====================
-# OOP IMPORTS
-# =====================
-from models.user import User
-from models.session import Session
-from models.chat import Chat
-from ai.engine import AIEngine
-
-# =====================
-# INIT OBJECTS
-# =====================
-user = User()
-session = Session()
-chat = Chat()
-ai = AIEngine()
+from services.api_client import (
+    login,
+    register
+)
 
 # =====================
 # PAGE CONFIG
 # =====================
 st.set_page_config(
-    page_title="AI TKJ Assistant",
+    page_title="AI Project",
     layout="centered"
 )
 
-st.title("🤖 AI TKJ Assistant")
+st.title("🤖 AI Project")
 
 # =====================
-# SESSION STATE INIT
+# SESSION STATE
 # =====================
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
 
-if "current_session" not in st.session_state:
-    st.session_state.current_session = None
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+if "username" not in st.session_state:
+    st.session_state.username = None
 
 # =====================
-# AUTH SYSTEM
+# LOGIN / REGISTER
 # =====================
 if st.session_state.user_id is None:
 
     st.title("🔐 Login System")
 
-    tab1, tab2 = st.tabs(["Login", "Register"])
+    tab1, tab2 = st.tabs([
+        "Login",
+        "Register"
+    ])
 
-    # ========== LOGIN ==========
+    # =====================
+    # LOGIN
+    # =====================
     with tab1:
 
-        username = st.text_input("Username", key="login_user")
-        password = st.text_input("Password", type="password", key="login_pass")
+        username = st.text_input(
+            "Username",
+            key="login_username"
+        )
+
+        password = st.text_input(
+            "Password",
+            type="password",
+            key="login_password"
+        )
 
         if st.button("Login"):
 
-            user_id = user.login(username, password)
+            try:
 
-            if user_id:
+                result = login(
+                    username,
+                    password
+                )
 
-                st.session_state.user_id = user_id
-                st.success("Login berhasil")
-                st.rerun()
+                if result["status"] == "success":
 
-            else:
-                st.error("Login gagal")
+                    st.session_state.user_id = (
+                        result["data"]["user_id"]
+                    )
 
-    # ========== REGISTER ==========
+                    st.session_state.username = username
+
+                    st.success("Login berhasil")
+
+                    st.rerun()
+
+                else:
+
+                    st.error("Username atau password salah")
+
+            except Exception as e:
+
+                st.error(f"API Error: {e}")
+
+    # =====================
+    # REGISTER
+    # =====================
     with tab2:
 
-        r_username = st.text_input("Username Baru", key="reg_user")
-        r_password = st.text_input("Password Baru", type="password", key="reg_pass")
+        reg_username = st.text_input(
+            "Username Baru",
+            key="register_username"
+        )
+
+        reg_password = st.text_input(
+            "Password Baru",
+            type="password",
+            key="register_password"
+        )
 
         if st.button("Register"):
 
             try:
-                user.register(r_username, r_password)
-                st.success("Register berhasil, silakan login")
 
-            except:
-                st.error("Username sudah digunakan")
+                result = register(
+                    reg_username,
+                    reg_password
+                )
+
+                if result["status"] == "success":
+
+                    st.success(
+                        "Register berhasil, silakan login"
+                    )
+
+                else:
+
+                    st.error("Register gagal")
+
+            except Exception as e:
+
+                st.error(f"API Error: {e}")
 
     st.stop()
 
 # =====================
-# LOAD SESSION
+# MAIN APP
 # =====================
-if st.session_state.current_session is None:
+st.success(
+    f"Selamat datang, {st.session_state.username}"
+)
 
-    sessions = session.get_all(st.session_state.user_id)
-
-    if not sessions:
-
-        session_id = session.create(st.session_state.user_id)
-        st.session_state.current_session = session_id
-
-    else:
-        st.session_state.current_session = sessions[0][0]
+st.write("Backend API berhasil terhubung 🚀")
 
 # =====================
-# LOAD CHAT HISTORY
+# CHAT UI SEMENTARA
 # =====================
-if len(st.session_state.messages) == 0:
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-    history = chat.load(st.session_state.current_session)
-    st.session_state.messages.extend(history)
-
-# =====================
-# SHOW CHAT HISTORY
-# =====================
+# tampilkan chat
 for msg in st.session_state.messages:
 
     with st.chat_message(msg["role"]):
+
         st.write(msg["content"])
 
-# =====================
-# USER INPUT
-# =====================
-user_input = st.chat_input("Tulis pesan...")
+# input user
+user_input = st.chat_input(
+    "Tulis pesan..."
+)
 
 if user_input:
 
-    # auto title
-    if len(st.session_state.messages) <= 1:
-
-        title = user_input[:30]
-
-        session.update_title(
-            st.session_state.current_session,
-            st.session_state.user_id,
-            title
-        )
-
-    # show user
+    # tampilkan user
     with st.chat_message("user"):
+
         st.write(user_input)
 
-    # save user message
+    # simpan memory
     st.session_state.messages.append({
         "role": "user",
         "content": user_input
     })
 
-    chat.save(
-        st.session_state.current_session,
-        "user",
-        user_input
+    # dummy AI response
+    ai_reply = (
+        f"AI menerima pesan: {user_input}"
     )
-
-    # AI RESPONSE
-    recent_messages = st.session_state.messages
 
     with st.chat_message("assistant"):
 
-        placeholder = st.empty()
-        full_response = ""
+        st.write(ai_reply)
 
-        stream = ai.stream(recent_messages)
-
-        for chunk in stream:
-
-            content = chunk["message"]["content"]
-            full_response += content
-            placeholder.markdown(full_response)
-
-    ai_reply = full_response
-
-    # save AI message
     st.session_state.messages.append({
         "role": "assistant",
         "content": ai_reply
     })
-
-    chat.save(
-        st.session_state.current_session,
-        "assistant",
-        ai_reply
-    )
 
 # =====================
 # SIDEBAR
 # =====================
 with st.sidebar:
 
-    st.title("💬 Sessions")
+    st.title("⚙ Menu")
 
-    # logout
+    st.write(
+        f"Login sebagai:\n\n{st.session_state.username}"
+    )
+
     if st.button("🚪 Logout"):
+
         st.session_state.user_id = None
+        st.session_state.username = None
         st.session_state.messages = []
-        st.session_state.current_session = None
+
         st.rerun()
 
-    # new chat
-    if st.button("➕ New Chat"):
+    if st.button("🧹 Clear Chat"):
 
-        session_id = session.create(st.session_state.user_id)
-        st.session_state.current_session = session_id
         st.session_state.messages = []
+
         st.rerun()
-
-    st.divider()
-
-    # list sessions
-    sessions = session.get_all(st.session_state.user_id)
-
-    for s in sessions:
-
-        session_id = s[0]
-        title = s[1]
-
-        col1, col2 = st.columns([4, 1])
-
-        with col1:
-
-            if st.button(
-                f"📌 {title}",
-                key=f"session_{session_id}"
-            ):
-
-                st.session_state.current_session = session_id
-                st.session_state.messages = chat.load(session_id)
-                st.rerun()
-
-        with col2:
-
-            if st.button(
-                "❌",
-                key=f"delete_{session_id}"
-            ):
-
-                session.delete(
-                    session_id,
-                    st.session_state.user_id
-                )
-
-                st.session_state.messages = []
-
-                sessions = session.get_all(st.session_state.user_id)
-
-                if sessions:
-                    st.session_state.current_session = sessions[0][0]
-                else:
-                    new_id = session.create(st.session_state.user_id)
-                    st.session_state.current_session = new_id
-
-                st.rerun()

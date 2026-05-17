@@ -2,17 +2,22 @@ from fastapi import APIRouter
 from models.user import User
 
 router = APIRouter()
+
 user = User()
 
 @router.post("/login")
-def login(username: str, password: str):
+def login(data: dict):
 
-    user_id = user.login(username, password)
+    result = user.login(
+        data["username"],
+        data["password"]
+    )
 
-    if user_id:
+    if result:
+
         return {
             "status": "success",
-            "user_id": user_id
+            "data": result
         }
 
     return {
@@ -21,11 +26,21 @@ def login(username: str, password: str):
 
 
 @router.post("/register")
-def register(username: str, password: str):
+def register(data: dict):
 
     try:
-        user.register(username, password)
-        return {"status": "success"}
+
+        user.register(
+            data["username"],
+            data["password"]
+        )
+
+        return {
+            "status": "success"
+        }
 
     except:
-        return {"status": "error"}
+
+        return {
+            "status": "error"
+        }
