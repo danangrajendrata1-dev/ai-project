@@ -6,21 +6,39 @@ class Database:
     def __init__(self):
 
         self.conn = psycopg2.connect(
-            os.getenv("postgresql://neondb_owner:npg_ly9AnVpOX8bE@ep-noisy-dream-aouwl360.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require")
+            os.getenv("DATABASE_URL")
         )
 
     def execute(self, query, params=None):
 
-        cur = self.conn.cursor()
-        cur.execute(query, params)
+        cursor = self.conn.cursor()
+
+        cursor.execute(query, params)
+
         self.conn.commit()
-        cur.close()
 
-    def fetch_one(self, query, params=None):
+        cursor.close()
 
-        cur = self.conn.cursor()
-        cur.execute(query, params)
-        result = cur.fetchone()
-        cur.close()
+    def fetchone(self, query, params=None):
+
+        cursor = self.conn.cursor()
+
+        cursor.execute(query, params)
+
+        result = cursor.fetchone()
+
+        cursor.close()
+
+        return result
+
+    def fetchall(self, query, params=None):
+
+        cursor = self.conn.cursor()
+
+        cursor.execute(query, params)
+
+        result = cursor.fetchall()
+
+        cursor.close()
 
         return result
