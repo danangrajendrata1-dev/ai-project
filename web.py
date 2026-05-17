@@ -1,7 +1,15 @@
 import streamlit as st
+
 from services.api_client import (
     login,
-    register
+    register,
+    get_sessions,
+    create_session,
+    delete_session,
+    load_chat,
+    save_chat,
+    clear_chat,
+    ai_chat
 )
 
 # =====================
@@ -22,6 +30,12 @@ if "user_id" not in st.session_state:
 
 if "username" not in st.session_state:
     st.session_state.username = None
+
+if "current_session" not in st.session_state:
+    st.session_state.current_session = None
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 # =====================
 # LOGIN / REGISTER
@@ -74,7 +88,9 @@ if st.session_state.user_id is None:
 
                 else:
 
-                    st.error("Username atau password salah")
+                    st.error(
+                        "Username atau password salah"
+                    )
 
             except Exception as e:
 
@@ -122,51 +138,92 @@ if st.session_state.user_id is None:
     st.stop()
 
 # =====================
-# MAIN APP
+# LOAD SESSION
 # =====================
-st.success(
-    f"Selamat datang, {st.session_state.username}"
-)
+if st.session_state.current_session is None:
 
-st.write("Backend API berhasil terhubung 🚀")
+    result = get_sessions(
+        st.session_state.user_id
+    )
+
+    sessions = result["data"]
+
+    if not sessions:
+
+        new_session = create_session(
+            st.session_state.user_id
+        )
+
+        st.session_state.current_session = (
+            new_session["session_id"]
+        )
+
+    else:
+
+        st.session_state.current_session = (
+            sessions[0][0]
+        )
 
 # =====================
-# CHAT UI SEMENTARA
+# LOAD CHAT HISTORY
 # =====================
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+if len(st.session_state.messages) == 0:
 
-# tampilkan chat
+    result = load_chat(
+        st.session_state.current_session
+    )
+
+    st.session_state.messages = (
+        result["data"]
+    )
+
+# =====================
+# SHOW CHAT HISTORY
+# =====================
 for msg in st.session_state.messages:
 
     with st.chat_message(msg["role"]):
 
         st.write(msg["content"])
 
-# input user
+# =====================
+# USER INPUT
+# =====================
 user_input = st.chat_input(
     "Tulis pesan..."
 )
 
 if user_input:
 
-    # tampilkan user
+    # =====================
+    # SHOW USER MESSAGE
+    # =====================
     with st.chat_message("user"):
 
         st.write(user_input)
 
-    # simpan memory
     st.session_state.messages.append({
         "role": "user",
         "content": user_input
     })
 
-    # dummy AI response
-    ai_reply = (
-        f"AI menerima pesan: {user_input}"
+    # =====================
+    # SAVE USER CHAT
+    # =====================
+    save_chat(
+        st.session_state.current_session,
+        "user",
+        user_input
     )
 
+    # =====================
+    # AI RESPONSE
+    # =====================
     with st.chat_message("assistant"):
+
+        result = ai_chat(user_input)
+
+        ai_reply = result["response"]
 
         st.write(ai_reply)
 
@@ -175,27 +232,147 @@ if user_input:
         "content": ai_reply
     })
 
+    # =====================
+    # SAVE AI CHAT
+    # =====================
+    save_chat(
+        st.session_state.current_session,
+        "assistant",
+        ai_reply
+    )
+
 # =====================
 # SIDEBAR
 # =====================
 with st.sidebar:
 
-    st.title("⚙ Menu")
+    st.title("💬 Sessions")
 
     st.write(
         f"Login sebagai:\n\n{st.session_state.username}"
     )
 
+    # =====================
+    # LOGOUT
+    # =====================
     if st.button("🚪 Logout"):
 
         st.session_state.user_id = None
         st.session_state.username = None
+        st.session_state.current_session = None
         st.session_state.messages = []
 
         st.rerun()
 
+    # =====================
+    # NEW CHAT
+    # =====================
+    if st.button("➕ New Chat"):
+
+        result = create_session(
+            st.session_state.user_id
+        )
+
+        st.session_state.current_session = (
+            result["session_id"]
+        )
+
+        st.session_state.messages = []
+
+        st.rerun()
+
+    # =====================
+    # CLEAR CHAT
+    # =====================
     if st.button("🧹 Clear Chat"):
 
+        clear_chat(
+            st.session_state.current_session
+        )
+
         st.session_state.messages = []
 
         st.rerun()
+
+    st.divider()
+
+    # =====================
+    # SESSION LIST
+    # =====================
+    result = get_sessions(
+        st.session_state.user_id
+    )
+
+    sessions = result["data"]
+
+    for s in sessions:
+
+        session_id = s[0]
+        title = s[1]
+
+        col1, col2 = st.columns([4, 1])
+
+        # =====================
+        # OPEN SESSION
+        # =====================
+        with col1:
+
+            if st.button(
+                f"📌 {title}",
+                key=f"session_{session_id}"
+            ):
+
+                st.session_state.current_session = (
+                    session_id
+                )
+
+                result = load_chat(
+                    session_id
+                )
+
+                st.session_state.messages = (
+                    result["data"]
+                )
+
+                st.rerun()
+
+        # =====================
+        # DELETE SESSION
+        # =====================
+        with col2:
+
+            if st.button(
+                "❌",
+                key=f"delete_{session_id}"
+            ):
+
+                delete_session(
+                    session_id,
+                    st.session_state.user_id
+                )
+
+                st.session_state.messages = []
+
+                result = get_sessions(
+                    st.session_state.user_id
+                )
+
+                sessions = result["data"]
+
+                if sessions:
+
+                    st.session_state.current_session = (
+                        sessions[0][0]
+                    )
+
+                else:
+
+                    new_session = create_session(
+                        st.session_state.user_id
+                    )
+
+                    st.session_state.current_session = (
+                        new_session["session_id"]
+                    )
+
+                st.rerun()

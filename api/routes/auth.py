@@ -1,16 +1,23 @@
 from fastapi import APIRouter
-from models.user import User
+from services.auth_service import (
+    AuthService
+)
 
+from schemas.auth_schema import (
+    LoginSchema,
+    RegisterSchema
+)
+auth_service = AuthService()
 router = APIRouter()
 
 user = User()
 
 @router.post("/login")
-def login(data: dict):
+def login(data: LoginSchema):
 
-    result = user.login(
-        data["username"],
-        data["password"]
+    result = auth_service.login(
+        data.username,
+        data.password
     )
 
     if result:
@@ -26,13 +33,13 @@ def login(data: dict):
 
 
 @router.post("/register")
-def register(data: dict):
+def register(data: RegisterSchema):
 
     try:
 
-        user.register(
-            data["username"],
-            data["password"]
+        auth_service.register(
+            data.username,
+            data.password
         )
 
         return {

@@ -1,6 +1,8 @@
 from fastapi import APIRouter
 from models.chat import Chat
-
+from schemas.chat_schema import (
+    SaveChatSchema
+)
 router = APIRouter()
 
 chat = Chat()
@@ -22,12 +24,14 @@ def load_chat(session_id: int):
 # SAVE CHAT
 # ======================
 @router.post("/save")
-def save_chat(data: dict):
+def save_chat(
+    data: SaveChatSchema
+):
 
-    chat.save(
-        data["session_id"],
-        data["role"],
-        data["message"]
+    chat_service.save(
+        data.session_id,
+        data.role,
+        data.message
     )
 
     return {

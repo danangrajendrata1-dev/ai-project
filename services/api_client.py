@@ -3,6 +3,12 @@ TOKEN = None
 
 BASE_URL = "http://ai-project-production-0626.up.railway.app"
 
+def get_headers(token):
+
+    return {
+        "Authorization": f"Bearer {token}"
+    }
+
 
 def login(username, password):
 
@@ -64,11 +70,15 @@ def stream_message(session_id, message):
 # ======================
 # GET SESSIONS
 # ======================
-def get_sessions(user_id):
+def get_sessions(
+    user_id,
+    token
+):
 
     response = requests.get(
-        f"{BASE_URL}/session/{user_id}"
-    )
+    f"{BASE_URL}/session/{user_id}",
+    headers=get_headers(token)
+)
 
     return response.json()
 
@@ -141,3 +151,23 @@ def clear_chat(session_id):
     )
 
     return response.json()
+
+# ======================
+# AI CHAT
+# ======================
+def ai_chat(message):
+
+    response = requests.post(
+        f"{BASE_URL}/ai/chat",
+        json={
+            "message": message
+        }
+    )
+
+    return response.json()
+
+def get_headers(token):
+
+    return {
+        "Authorization": f"Bearer {token}"
+    }

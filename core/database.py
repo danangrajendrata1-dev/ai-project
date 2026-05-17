@@ -1,6 +1,10 @@
 import os
 import psycopg2
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 class Database:
 
     def __init__(self):
@@ -9,36 +13,25 @@ class Database:
             os.getenv("DATABASE_URL")
         )
 
-    def execute(self, query, params=None):
+        self.cursor = self.conn.cursor()
 
-        cursor = self.conn.cursor()
+    def execute(
+        self,
+        query,
+        params=None
+    ):
 
-        cursor.execute(query, params)
+        self.cursor.execute(
+            query,
+            params
+        )
 
         self.conn.commit()
 
-        cursor.close()
+    def fetchone(self):
 
-    def fetchone(self, query, params=None):
+        return self.cursor.fetchone()
 
-        cursor = self.conn.cursor()
+    def fetchall(self):
 
-        cursor.execute(query, params)
-
-        result = cursor.fetchone()
-
-        cursor.close()
-
-        return result
-
-    def fetchall(self, query, params=None):
-
-        cursor = self.conn.cursor()
-
-        cursor.execute(query, params)
-
-        result = cursor.fetchall()
-
-        cursor.close()
-
-        return result
+        return self.cursor.fetchall()

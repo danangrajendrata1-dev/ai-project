@@ -1,5 +1,12 @@
 from fastapi import APIRouter
 from models.session import Session
+from fastapi import Depends
+from core.dependencies import (
+    get_current_user
+)
+from schemas.session_schema import (
+    CreateSessionSchema
+)
 
 router = APIRouter()
 
@@ -9,7 +16,12 @@ session = Session()
 # GET ALL SESSIONS
 # ======================
 @router.get("/{user_id}")
-def get_sessions(user_id: int):
+def get_sessions(
+    user_id: int,
+    current_user: dict = Depends(
+        get_current_user
+    )
+):
 
     data = session.get_all(user_id)
 
@@ -22,10 +34,12 @@ def get_sessions(user_id: int):
 # CREATE SESSION
 # ======================
 @router.post("/create")
-def create_session(data: dict):
+def create_session(
+    data: CreateSessionSchema
+):
 
     session_id = session.create(
-        data["user_id"]
+        data.user_id
     )
 
     return {
